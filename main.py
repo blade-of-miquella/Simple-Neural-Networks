@@ -12,6 +12,12 @@ vectors = [
 
 corr_count: int = 1000
 
+def corrupt_vector(vector: np.ndarray, flip_probability=0.3) -> np.ndarray:
+    corrupted = vector.copy()
+    for i in range(len(corrupted)):
+        if np.random.rand() < flip_probability:
+            corrupted[i] = 1 - corrupted[i]
+    return corrupted
 
 def test_combined(templates: int) -> None:
     for i, vector in enumerate(vectors):
@@ -24,8 +30,7 @@ def test_combined(templates: int) -> None:
         success_hamming = 0
 
         for _ in range(templates):
-            corrupted_vector = vector.copy()
-            np.random.shuffle(corrupted_vector)
+            corrupted_vector = corrupt_vector(vector)
 
             result_hopfield = hp.hopefieldAsync(vector, corrupted_vector)
             if np.array_equal(result_hopfield, vector):
