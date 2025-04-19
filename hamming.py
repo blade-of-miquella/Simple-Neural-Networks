@@ -1,7 +1,9 @@
 import numpy as np
 
+
 def sign_activation(s: float) -> int:
     return 1 if s > 0 else -1 if s < 0 else 0
+
 
 def compute_initial_activation(prototypes: np.ndarray, x: np.ndarray) -> np.ndarray:
     n = x.shape[0]                   
@@ -11,6 +13,7 @@ def compute_initial_activation(prototypes: np.ndarray, x: np.ndarray) -> np.ndar
     for j in range(m):
         y0[j] = np.dot(prototypes[j] / 2.0, x) + T
     return y0
+
 
 def asynchronous_relaxation(y0: np.ndarray, e: float, max_iterations: int = 50) -> np.ndarray:
     m = len(y0)
@@ -25,6 +28,7 @@ def asynchronous_relaxation(y0: np.ndarray, e: float, max_iterations: int = 50) 
             break
     return y
 
+
 def hamming_network(prototypes: np.ndarray, x: np.ndarray, e: float = 0.1, max_iterations: int = 50) -> int:
     prototypes = np.array(prototypes, dtype=float)
     x = np.array(x, dtype=float)
@@ -37,3 +41,4 @@ def hamming_network(prototypes: np.ndarray, x: np.ndarray, e: float = 0.1, max_i
         return indices_ones[np.argmax(y0[indices_ones])]
     else:
         return int(np.argmax(y_final))
+    
