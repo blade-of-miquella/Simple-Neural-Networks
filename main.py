@@ -3,6 +3,7 @@ import hopefield as hp
 import bidirectional as bam
 import hamming as hm
 import random
+from typing import List
 
 vectors = [
     np.array([1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
@@ -23,7 +24,7 @@ def corrupt_vector(vector: np.ndarray, corr_bit: int) -> np.ndarray:
         already_corrupt.append(index)
     return corrupted
 
-def format_results(success_list, templates):
+def format_results(success_list : List, templates : int) -> str:
     percents = [round(100 * s / templates) for s in success_list]
     overall = sum(1 for p in percents if p > 70)
     return "|".join(f"{p}%" for p in percents) + f"|{overall}/{len(success_list)}"
