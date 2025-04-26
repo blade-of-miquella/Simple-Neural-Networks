@@ -5,10 +5,9 @@ import hamming as hm
 import random
 
 vectors = [
-    np.array([0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]),
+    np.array([1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]),
     np.array([1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1, 1, 0, 0, 0, 1, 1]),
-    np.array([1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]),
-    np.array([1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 1]),
+    np.array([1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0, 1, 1, 0, 0]),
 ]
 
 corr_count = 100
@@ -24,44 +23,48 @@ def corrupt_vector(vector: np.ndarray, corr_bit: int) -> np.ndarray:
         already_corrupt.append(index)
     return corrupted
 
+def format_results(success_list, templates):
+    percents = [round(100 * s / templates) for s in success_list]
+    overall = sum(1 for p in percents if p > 70)
+    return "|".join(f"{p}%" for p in percents) + f"|{overall}/{len(success_list)}"
+
 def test_combined(templates: int) -> None:
-    test_number = 0
-    general_percent = 100
-    print("# Test | Hamming   | HopfieldSync | HopfieldAsync | BamX | BamY")
-    print("--------------------------------------------------------------")
-    while test_number < 20:
-        total_success = {"hamming": 0, "hopfield_sync": 0, "hopfield_async": 0, "bam_x": 0, "bam_y": 0}
-        for i, vector in enumerate(vectors):
-            x = vector[:10]
-            y = vector[10:]
+    header = f"#T  | {'Hamming':<25} | {'HopSync':<25} | {'HopAsync':<25} | {'BamX':<25} | {'BamY':<25}"
+    print(header)
+    print("-" * len(header))
+    for test_number in range(20):
+        success = {
+            "hamming": [0] * len(vectors),
+            "hopfield_sync": [0] * len(vectors),
+            "hopfield_async": [0] * len(vectors),
+            "bam_x": [0] * len(vectors),
+            "bam_y": [0] * len(vectors)
+        }
+        for idx, vector in enumerate(vectors):
+            x = vector
+            y = vector[-3:]
             weights_bam = bam.train_bam(x.reshape(1, -1), y.reshape(1, -1))
             for _ in range(templates):
-                corrupted_vector = corrupt_vector(vector, test_number)
-                result_hopfield_async = hp.hopefieldAsync(vector, corrupted_vector)
-                if np.array_equal(result_hopfield_async, vector):
-                    total_success["hopfield_async"] += 1
-                result_hopfield_sync = hp.hopefieldSync(vector, corrupted_vector)
-                if np.array_equal(result_hopfield_sync, vector):
-                    total_success["hopfield_sync"] += 1
-                corrupted_x = corrupted_vector[:10]
-                corrupted_y = corrupted_vector[10:]
-                restored_y = bam.recall(corrupted_x.reshape(1, -1), weights_bam, direction="to_Y").flatten()
-                restored_x = bam.recall(corrupted_y.reshape(1, -1), weights_bam, direction="to_X").flatten()
-                if np.array_equal(restored_y, y):
-                    total_success["bam_y"] += 1
-                if np.array_equal(restored_x, x):
-                    total_success["bam_x"] += 1
-                winner = hm.hamming_network(vectors, corrupted_vector)
-                if winner == i:
-                    total_success["hamming"] += 1
-        hamming_result = f"{round(total_success['hamming'] / templates)}/{len(vectors)}"
-        hopfield_sync_result = f"{round(total_success['hopfield_sync'] / templates)}/{len(vectors)}"
-        hopfield_async_result = f"{round(total_success['hopfield_async'] / templates)}/{len(vectors)}"
-        bam_x_result = f"{round(total_success['bam_x'] / templates)}/{len(vectors)}"
-        bam_y_result = f"{round(total_success['bam_y'] / templates)}/{len(vectors)}"
-        print(
-            f"{test_number + 1:<6} | {hamming_result:<9} | {hopfield_sync_result:<12} | {hopfield_async_result:<13} | {bam_x_result:<5} | {bam_y_result:<5}"
-        )
-        test_number += 1
+                corrupted = corrupt_vector(vector, test_number)
+                if np.array_equal(hp.hopefieldSync(vector, corrupted), vector):
+                    success["hopfield_sync"][idx] += 1
+                if np.array_equal(hp.hopefieldAsync(vector, corrupted), vector):
+                    success["hopfield_async"][idx] += 1
+                corrupted_x = corrupted
+                corrupted_y = corrupted[-3:]
+                if np.array_equal(bam.recall(corrupted_x.reshape(1, -1), weights_bam, direction="to_Y").flatten(), y):
+                    success["bam_y"][idx] += 1
+                if np.array_equal(bam.recall(corrupted_y.reshape(1, -1), weights_bam, direction="to_X").flatten(), x):
+                    success["bam_x"][idx] += 1
+                if hm.hamming_network(vectors, corrupted) == idx:
+                    success["hamming"][idx] += 1
+
+        hamming_result  = format_results(success["hamming"], templates)
+        hop_sync_result = format_results(success["hopfield_sync"], templates)
+        hop_async_result = format_results(success["hopfield_async"], templates)
+        bam_x_result    = format_results(success["bam_x"], templates)
+        bam_y_result    = format_results(success["bam_y"], templates)
+        
+        print(f"{test_number+1:<3} | {hamming_result:<25} | {hop_sync_result:<25} | {hop_async_result:<25} | {bam_x_result:<25} | {bam_y_result:<25}")
 
 test_combined(corr_count)

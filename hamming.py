@@ -29,7 +29,7 @@ def asynchronous_relaxation(y0: np.ndarray, e: float, max_iterations: int = 50) 
     return y
 
 
-def hamming_network(prototypes: np.ndarray, x: np.ndarray, e: float = 0.1, max_iterations: int = 50) -> int:
+def hamming_network(prototypes: np.ndarray, x: np.ndarray, e: float = 0.02, max_iterations: int = 50) -> int:
     prototypes = np.array(prototypes, dtype=float)
     x = np.array(x, dtype=float)
     y0 = compute_initial_activation(prototypes, x)
